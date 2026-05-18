@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -f .git/index.lock)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: Phase 2 - tree knowledge graph, DeepSeek chat, RAG, MCQ system *)"
+    ]
+  }
+}

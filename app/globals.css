@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* ── CSS variables (for shadcn components using hsl(var(--x))) ── */
+:root {
+  --background: 240 14% 6%;
+  --foreground: 270 15% 92%;
+  --card: 240 12% 9%;
+  --card-foreground: 270 15% 92%;
+  --popover: 240 12% 9%;
+  --popover-foreground: 270 15% 92%;
+  --primary: 271 91% 65%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 12% 14%;
+  --secondary-foreground: 270 15% 80%;
+  --muted: 240 12% 12%;
+  --muted-foreground: 270 8% 55%;
+  --accent: 270 40% 18%;
+  --accent-foreground: 271 80% 80%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 270 15% 15%;
+  --input: 240 12% 11%;
+  --ring: 271 91% 65%;
+  --radius: 0.75rem;
+}
+
+/* ── Tailwind v4: map CSS vars → utility classes ── */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+/* ── Base reset ── */
+@layer base {
+  * { border-color: hsl(var(--border)); box-sizing: border-box; }
+
+  html, body {
+    background-color: #0d0d14;
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Make sure every app page is dark */
+  main {
+    background-color: #111118;
+    min-height: 100vh;
+  }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(270 15% 20%); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(271 91% 65% / 0.5); }
+
+/* ── Input focus glow ── */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: hsl(271 91% 65% / 0.6) !important;
+  box-shadow: 0 0 0 3px hsl(271 91% 65% / 0.12), 0 0 16px hsl(271 91% 65% / 0.1) !important;
+}
+
+/* ── Utility classes ── */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(271 91% 75%) 0%, hsl(271 91% 55%) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.neon-card {
+  background: #13131d;
+  border: 1px solid hsl(270 25% 18%);
+  box-shadow:
+    0 0 0 1px hsl(270 20% 10%),
+    0 32px 64px rgba(0,0,0,0.7),
+    0 0 80px hsl(271 91% 65% / 0.05);
+}
+
+.neon-input {
+  background: #0f0f18 !important;
+  border: 1px solid hsl(270 15% 20%) !important;
+  color: hsl(270 15% 92%) !important;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.neon-input::placeholder { color: hsl(270 8% 38%) !important; }
+
+.btn-primary {
+  background: linear-gradient(135deg, hsl(271 91% 62%) 0%, hsl(271 91% 50%) 100%);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 24px hsl(271 91% 65% / 0.3), 0 4px 12px hsl(271 91% 65% / 0.15);
+  transition: all 0.2s;
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 0 32px hsl(271 91% 65% / 0.45), 0 4px 20px hsl(271 91% 65% / 0.25);
+  transform: translateY(-1px);
+}
+.btn-primary:active:not(:disabled) { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.project-card {
+  background: #13131d;
+  border: 1px solid hsl(270 15% 14%);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.project-card:hover {
+  border-color: hsl(271 91% 65% / 0.35);
+  box-shadow: 0 0 28px hsl(271 91% 65% / 0.1), 0 8px 32px rgba(0,0,0,0.5);
+  transform: translateY(-2px);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+/* ── ReactFlow ── */
+.react-flow__node-topic { border-radius: 8px; }
+.react-flow__background { background: #111118 !important; }
