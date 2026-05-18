@@ -9,6 +9,17 @@ export async function POST(req: Request) {
 
   const contentType = req.headers.get('content-type') ?? ''
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const cookieHeader = req.headers.get('cookie') ?? ''
+
+  function triggerIngest(projectId: string, resourceId: string) {
+    fetch(`${appUrl}/api/project/${projectId}/ingest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookieHeader },
+      body: JSON.stringify({ resourceId }),
+    }).catch(console.error)
+  }
+
   if (contentType.includes('multipart/form-data')) {
     const formData = await req.formData()
     const projectId = formData.get('projectId') as string
@@ -20,6 +31,7 @@ export async function POST(req: Request) {
       .upload(storagePath, file)
     if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
     const resource = await createResource(projectId, file.name, type, undefined, storagePath)
+    triggerIngest(projectId, resource.id)
     return NextResponse.json(resource, { status: 201 })
   }
 
@@ -28,6 +40,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'projectId, label, type required' }, { status: 400 })
   }
   const resource = await createResource(projectId, label, type, url)
+  triggerIngest(projectId, resource.id)
   return NextResponse.json(resource, { status: 201 })
 }
 

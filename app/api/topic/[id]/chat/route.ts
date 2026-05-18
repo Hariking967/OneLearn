@@ -58,6 +58,14 @@ export async function POST(
     const readable = new ReadableStream({
       async start(controller) {
         const reader = sseStream.getReader();
+        let pendingToolCalls: Array<{ id: string; name: string; argumentsStr: string }> = [];
+
+        const flush = (text: string) => {
+          if (!text) return;
+          fullResponse += text;
+          controller.enqueue(encoder.encode(text));
+        };
+
         try {
           while (true) {
             const { done, value } = await reader.read();
@@ -73,10 +81,44 @@ export async function POST(
               if (data === "[DONE]") continue;
               try {
                 const parsed = JSON.parse(data);
-                const text: string = parsed.choices?.[0]?.delta?.content ?? "";
-                if (text) {
-                  fullResponse += text;
-                  controller.enqueue(encoder.encode(text));
+                const delta = parsed.choices?.[0]?.delta;
+                const finishReason = parsed.choices?.[0]?.finish_reason;
+
+                if (delta?.content) flush(delta.content);
+
+                if (delta?.tool_calls) {
+                  for (const tc of delta.tool_calls) {
+                    const idx = tc.index ?? 0;
+                    if (!pendingToolCalls[idx]) {
+                      pendingToolCalls[idx] = { id: tc.id ?? "", name: tc.function?.name ?? "", argumentsStr: "" };
+                    }
+                    if (tc.function?.name) pendingToolCalls[idx].name = tc.function.name;
+                    if (tc.function?.arguments) pendingToolCalls[idx].argumentsStr += tc.function.arguments;
+                  }
+                }
+
+                if (finishReason === "tool_calls" && pendingToolCalls.length > 0) {
+                  for (const tc of pendingToolCalls) {
+                    let args: Record<string, unknown> = {};
+                    try { args = JSON.parse(tc.argumentsStr); } catch {}
+
+                    if (tc.name === "web_search") {
+                      const query = String(args.query ?? "");
+                      flush(`\n\n🔍 Searching: "${query}"…\n`);
+                      try {
+                        const { searchAndEmbed } = await import("@/lib/chat/tools/web-search");
+                        const summary = await searchAndEmbed(topicId, query);
+                        flush(`\n${summary}\n`);
+                      } catch (e) {
+                        flush(`\n(Search failed: ${e instanceof Error ? e.message : "unknown"})\n`);
+                      }
+                    }
+
+                    if (tc.name === "generate_mcq") {
+                      flush(`\n\n[TOOL:generate_mcq]\n`);
+                    }
+                  }
+                  pendingToolCalls = [];
                 }
               } catch {
                 // skip malformed SSE lines
@@ -91,7 +133,7 @@ export async function POST(
               try {
                 const parsed = JSON.parse(data);
                 const text: string = parsed.choices?.[0]?.delta?.content ?? "";
-                if (text) { fullResponse += text; controller.enqueue(encoder.encode(text)); }
+                if (text) flush(text);
               } catch {}
             }
           }
@@ -102,7 +144,6 @@ export async function POST(
         if (fullResponse) {
           try {
             await saveChatMessage(topicId, "assistant", fullResponse);
-            // Fire-and-forget: update topic memory summary for parent context
             refreshTopicMemory(topicId).catch(console.error);
           } catch (e) {
             console.error("[Chat API] Failed to save assistant message:", e);
