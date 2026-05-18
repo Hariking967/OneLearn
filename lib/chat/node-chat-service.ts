@@ -9,7 +9,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
-export async function buildChatContext(topicId: string): Promise<string> {
+export async function buildChatContext(topicId: string, userQuery?: string): Promise<string> {
   try {
     const { data: topic, error: topicError } = await supabase
       .from("topics")
@@ -23,7 +23,7 @@ export async function buildChatContext(topicId: string): Promise<string> {
     const [allDescendants, ownMemory, ragContext] = await Promise.all([
       getAllDescendants(topicId),
       supabase.from("topic_memory").select("summary").eq("topic_id", topicId).single(),
-      getRAGContext(topic.project_id, topicId, 5).catch(() => ""),
+      getRAGContext(topic.project_id, topicId, 5, userQuery).catch(() => ""),
     ]);
 
     // Fetch memory summaries for ALL descendants (what the student learned in prerequisite topics)
@@ -141,7 +141,7 @@ export async function streamNodeChat(
   messages: Message[],
   userMessage: string
 ): Promise<ReadableStream<Uint8Array>> {
-  const context = await buildChatContext(topicId);
+  const context = await buildChatContext(topicId, userMessage);
 
   // Extract topic name from context header for the system prompt
   const topicNameMatch = context.match(/^# Current Topic: (.+)$/m)

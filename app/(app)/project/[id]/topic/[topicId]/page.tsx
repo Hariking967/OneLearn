@@ -42,7 +42,7 @@ export default async function TopicPage({ params }: Props) {
         </Badge>
       </header>
       <div className="flex-1 overflow-hidden">
-        <NodeChat topicId={topicId} topicName={topic.name} initialMessages={history} />
+        <NodeChat topicId={topicId} topicName={topic.name} initialMessages={history.filter(m => m.role === 'user' || m.role === 'assistant') as any} />
       </div>
     </div>
   )
