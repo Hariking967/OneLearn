@@ -18,9 +18,9 @@ interface UploadError {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<UploadResponse | UploadError>> {
-  const projectId = params.id;
+  const { id: projectId } = await params;
 
   try {
     const formData = await request.formData();
@@ -90,7 +90,7 @@ export async function POST(
             : "text",
         url: urlData.publicUrl,
         storage_path: storagePath,
-        ingested_at: new Date().toISOString(),
+        ingest_status: "pending",
       })
       .select()
       .single();
@@ -98,6 +98,23 @@ export async function POST(
     if (dbError) {
       throw dbError;
     }
+
+    // Fire background ingestion without blocking the response
+    setImmediate(async () => {
+      const adminSupabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+      );
+      try {
+        await adminSupabase.from("resources").update({ ingest_status: "indexing" }).eq("id", resource.id);
+        const { ingestResource } = await import("@/lib/ingest/pipeline");
+        await ingestResource(resource);
+        await adminSupabase.from("resources").update({ ingest_status: "done", ingested_at: new Date().toISOString() }).eq("id", resource.id);
+      } catch (e) {
+        console.error("[Auto-ingest failed]", e);
+        await adminSupabase.from("resources").update({ ingest_status: "error" }).eq("id", resource.id);
+      }
+    });
 
     return NextResponse.json<UploadResponse>({
       success: true,

@@ -13,7 +13,7 @@ const supabase = createClient(
 
 export async function ingestResource(resource: Resource): Promise<void> {
   if (!process.env.OPENAI_API_KEY) {
-    console.warn("[Ingest] OPENAI_API_KEY not set — skipping RAG ingestion");
+    console.warn("[Ingest] OPENAI_API_KEY not set — RAG ingestion disabled. Add OPENAI_API_KEY to .env.local to enable resource indexing.");
     return;
   }
 
@@ -30,7 +30,7 @@ export async function ingestResource(resource: Resource): Promise<void> {
       text = await extractFromUrl(resource.url);
     } else if ((resource.type === "pdf" || resource.type === "docx") && resource.storage_path) {
       const { data, error } = await supabase.storage
-        .from("resources")
+        .from("learning-resources")
         .download(resource.storage_path);
       if (error || !data) throw new Error(`Storage download failed: ${error?.message}`);
       const buffer = await data.arrayBuffer();

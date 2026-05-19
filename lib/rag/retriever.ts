@@ -19,7 +19,10 @@ export async function getRAGContext(
   limit: number = 5,
   query?: string
 ): Promise<string> {
-  if (!process.env.OPENAI_API_KEY) return "";
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn("[RAG] OPENAI_API_KEY not set — RAG disabled. Add OPENAI_API_KEY to .env.local to enable resource search.");
+    return "";
+  }
 
   try {
     const searchQuery = query?.trim() || "key concepts definitions examples";
@@ -48,7 +51,10 @@ export async function semanticSearch(
   query: string,
   limit: number = 10
 ): Promise<RetrievedChunk[]> {
-  if (!process.env.OPENAI_API_KEY) return [];
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn("[RAG] OPENAI_API_KEY not set — RAG disabled. Add OPENAI_API_KEY to .env.local to enable resource search.");
+    return [];
+  }
 
   try {
     const embedding = await getEmbedding(query);
