@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Network, BookOpen, ChevronLeft } from 'lucide-react'
+import { Network, BookOpen, ChevronLeft, LayoutGrid } from 'lucide-react'
 import Link from 'next/link'
 import { TopicGraph } from '@/components/graph/TopicGraph'
 import { ResourceList } from '@/components/resource/ResourceList'
@@ -10,18 +10,25 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ProjectSummaryDialog } from '@/components/ProjectSummaryDialog'
 import { NotesSummaryDialog } from '@/components/NotesSummaryDialog'
+import { SpacedReviewDialog } from '@/components/SpacedReviewDialog'
+import { CollaborateDialog } from '@/components/CollaborateDialog'
+import { ShareDialog } from '@/components/ShareDialog'
+import { AssignToClassroomDialog } from '@/components/AssignToClassroomDialog'
 import type { Project, Topic, TopicEdge, Resource } from '@/lib/supabase/types'
+import { FileView } from '@/components/FileView'
 
 interface Props {
   project: Project
   topics: Topic[]
   edges: TopicEdge[]
   initialResources: Resource[]
+  isTeacher?: boolean
 }
 
-export function ProjectPageClient({ project, topics, edges, initialResources }: Props) {
+export function ProjectPageClient({ project, topics, edges, initialResources, isTeacher = false }: Props) {
   const [resources, setResources] = useState(initialResources)
   const [progressScore, setProgressScore] = useState<number | null>(null)
+  const [viewMode, setViewMode] = useState<'tree' | 'file'>('tree')
 
   const done = topics.filter(t => t.status === 'done').length
   const rawProgress = topics.length > 0 ? Math.round((done / topics.length) * 100) : 0
@@ -34,7 +41,7 @@ export function ProjectPageClient({ project, topics, edges, initialResources }: 
 
   return (
     <div className="flex flex-col h-screen bg-gray-950">
-      <header className="border-b border-gray-800 bg-gray-900 px-6 py-3 flex items-center gap-4 shrink-0">
+      <header className="animate-fade-down border-b border-gray-800 bg-gray-900 px-6 py-3 flex items-center gap-4 shrink-0">
         <Link href="/dashboard">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-100 hover:bg-gray-800">
             <ChevronLeft className="h-4 w-4" />
@@ -42,7 +49,7 @@ export function ProjectPageClient({ project, topics, edges, initialResources }: 
         </Link>
 
         <div className="flex-1 min-w-0">
-          <h1 className="text-base font-semibold text-gray-100 truncate">{project.name}</h1>
+          <h1 className="text-base font-bold text-gray-100 truncate" style={{ fontFamily: 'var(--font-display)' }}>{project.name}</h1>
           {project.main_topic && (
             <div className="flex items-center gap-2 mt-0.5">
               <Badge className="text-xs bg-violet-950 text-violet-400 border-violet-800 border">
@@ -65,11 +72,36 @@ export function ProjectPageClient({ project, topics, edges, initialResources }: 
           </div>
         )}
 
+        {isTeacher && <AssignToClassroomDialog projectId={project.id} />}
+        <CollaborateDialog projectId={project.id} />
+        <ShareDialog projectId={project.id} projectName={project.name} />
+        <SpacedReviewDialog projectId={project.id} />
         <ProjectSummaryDialog
           projectId={project.id}
           projectName={project.name}
           onProgressScore={setProgressScore}
         />
+
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden', flexShrink: 0 }}>
+          {([
+            { mode: 'tree' as const, Icon: Network, label: 'Graph' },
+            { mode: 'file' as const, Icon: LayoutGrid, label: 'Cards' },
+          ] as const).map(({ mode, Icon, label }) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px',
+                background: viewMode === mode ? 'oklch(0.42 0.18 295 / 0.15)' : 'none',
+                border: 'none',
+                color: viewMode === mode ? 'oklch(0.68 0.18 295)' : 'oklch(0.5 0 0)',
+                fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+              }}
+            >
+              <Icon size={12} /> {label}
+            </button>
+          ))}
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -86,7 +118,13 @@ export function ProjectPageClient({ project, topics, edges, initialResources }: 
             </div>
           ) : (
             <div className="flex-1">
-              <TopicGraph topics={topics} edges={edges} projectId={project.id} />
+              {viewMode === 'tree' ? (
+                <TopicGraph topics={topics} edges={edges} projectId={project.id} />
+              ) : (
+                <div style={{ height: '100%', overflowY: 'auto', padding: 4 }}>
+                  <FileView topics={topics} projectId={project.id} />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -100,7 +138,11 @@ export function ProjectPageClient({ project, topics, edges, initialResources }: 
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-4">
-            <ResourceList resources={resources} onDelete={handleDeleteResource} />
+            <ResourceList
+              resources={resources}
+              projectId={project.id}
+              onDelete={handleDeleteResource}
+            />
           </div>
         </aside>
       </div>
