@@ -186,26 +186,18 @@ Be conversational, clear, and encouraging.`;
 export async function saveChatMessage(
   topicId: string,
   role: "user" | "assistant",
-  content: string
+  content: string,
+  sessionId?: string
 ): Promise<void> {
   if (!topicId || !content) {
     throw new Error("topicId and content are required");
   }
 
-  try {
-    const { error } = await supabase.from("chat_messages").insert({
-      topic_id: topicId,
-      role,
-      content,
-    });
+  const insert: Record<string, any> = { topic_id: topicId, role, content };
+  if (sessionId) insert.session_id = sessionId;
 
-    if (error) {
-      throw error;
-    }
-  } catch (error) {
-    console.error("[Save Message Error]", error);
-    throw error;
-  }
+  const { error } = await supabase.from("chat_messages").insert(insert);
+  if (error) throw error;
 }
 
 export async function updateNodeMemory(
@@ -277,19 +269,28 @@ export async function refreshTopicMemory(topicId: string): Promise<void> {
 
 export async function getNodeChatHistory(
   topicId: string,
-  limit: number = 50
+  limit: number = 50,
+  sessionId?: string
 ): Promise<Message[]> {
   if (!topicId || typeof topicId !== "string") {
     throw new Error("topicId must be a non-empty string");
   }
 
   try {
-    const { data: messages, error } = await supabase
+    let query = supabase
       .from("chat_messages")
       .select("role, content")
       .eq("topic_id", topicId)
       .order("created_at", { ascending: true })
       .limit(limit);
+
+    if (sessionId) {
+      query = query.eq("session_id", sessionId);
+    } else {
+      query = query.is("session_id", null);
+    }
+
+    const { data: messages, error } = await query;
 
     if (error) {
       throw error;
