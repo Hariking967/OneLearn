@@ -19,9 +19,9 @@ const statusConfig = {
   },
   unlocked: {
     label: 'In Progress',
-    color: 'var(--purple-2)',
-    bg: 'oklch(0.42 0.18 295 / 0.08)',
-    border: 'oklch(0.42 0.18 295 / 0.25)',
+    color: 'oklch(0.55 0.18 250)',
+    bg: 'oklch(0.55 0.18 250 / 0.08)',
+    border: 'oklch(0.55 0.18 250 / 0.25)',
     Icon: Unlock,
   },
   locked: {
@@ -95,12 +95,20 @@ export function FileView({ topics, projectId, resourceCount = {} }: Props) {
               }}>
                 {t.name}
               </p>
-              {rc > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--mute)', fontSize: 10, fontFamily: 'var(--font-mono)' }}>
                   <FileText size={10} />
                   {rc} resource{rc !== 1 ? 's' : ''}
                 </div>
-              )}
+                <span style={{
+                  fontSize: 10, fontFamily: 'var(--font-mono)', color: cfg.color,
+                  padding: '2px 7px', borderRadius: 5,
+                  background: cfg.bg, border: `1px solid ${cfg.border}`,
+                  cursor: 'pointer',
+                }}>
+                  Open →
+                </span>
+              </div>
             </div>
           </Link>
         )

@@ -122,7 +122,14 @@ export function ProjectPageClient({ project, topics, edges, initialResources, is
                 <TopicGraph topics={topics} edges={edges} projectId={project.id} />
               ) : (
                 <div style={{ height: '100%', overflowY: 'auto', padding: 4 }}>
-                  <FileView topics={topics} projectId={project.id} />
+                  <FileView
+                  topics={topics}
+                  projectId={project.id}
+                  resourceCount={resources.reduce<Record<string, number>>((acc, r) => {
+                    if (r.topic_id) { acc[r.topic_id] = (acc[r.topic_id] ?? 0) + 1 }
+                    return acc
+                  }, {})}
+                />
                 </div>
               )}
             </div>
