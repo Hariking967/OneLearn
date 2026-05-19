@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { Send, Zap, Loader2, X, ChevronRight, Upload, History, ClipboardList } from "lucide-react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { Send, Zap, Loader2, X, ChevronRight, Upload, History, ClipboardList, Search } from "lucide-react";
+import { MarkdownContent } from "./MarkdownContent";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ interface TestSession {
   id: string;
   mode: "mcq" | "descriptive";
   difficulty: string;
-  questions: string; // JSON string
+  questions: unknown; // jsonb — Supabase returns already-parsed object, never a raw string
   score: number | null;
   max_score: number | null;
   created_at: string;
@@ -51,9 +52,10 @@ interface NodeChatProps {
   topicId: string;
   topicName: string;
   initialMessages?: Message[];
+  sessionId?: string;
 }
 
-export default function NodeChat({ topicId, topicName, initialMessages = [] }: NodeChatProps) {
+export default function NodeChat({ topicId, topicName, initialMessages = [], sessionId }: NodeChatProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -83,9 +85,34 @@ export default function NodeChat({ topicId, topicName, initialMessages = [] }: N
   const [sessions, setSessions] = useState<TestSession[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  // Chat search
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!searchQuery) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, searchQuery]);
+
+  useEffect(() => {
+    if (showSearch) searchInputRef.current?.focus();
+  }, [showSearch]);
+
+  const filteredMessages = useMemo(() => {
+    if (!searchQuery.trim()) return messages;
+    const q = searchQuery.toLowerCase();
+    return messages.filter(m => m.content.toLowerCase().includes(q));
+  }, [messages, searchQuery]);
+
+  const highlightText = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.toLowerCase()
+        ? <mark key={i} className="bg-violet-600/40 text-violet-200 rounded px-0.5">{part}</mark>
+        : part
+    );
+  };
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -116,7 +143,7 @@ export default function NodeChat({ topicId, topicName, initialMessages = [] }: N
       const response = await fetch(`/api/topic/${topicId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userMessage: text }),
+        body: JSON.stringify({ userMessage: text, sessionId }),
       });
 
       if (!response.ok) {
@@ -330,8 +357,16 @@ export default function NodeChat({ topicId, topicName, initialMessages = [] }: N
   };
 
   const retakeSession = async (session: TestSession) => {
-    let qs: any[] = [];
-    try { qs = JSON.parse(session.questions); } catch { return; }
+    // Supabase jsonb columns come back as parsed JS objects, not strings
+    let qs: any[];
+    if (Array.isArray(session.questions)) {
+      qs = session.questions;
+    } else if (typeof session.questions === "string") {
+      try { qs = JSON.parse(session.questions); } catch { return; }
+    } else {
+      return;
+    }
+    if (!qs.length) return;
 
     if (session.mode === "mcq") {
       setMcq({ name: "quiz", questions: qs, difficulty: session.difficulty as Difficulty, numQuestions: qs.length });
@@ -671,6 +706,32 @@ export default function NodeChat({ topicId, topicName, initialMessages = [] }: N
         </div>
       )}
 
+      {/* ── Search bar ───────────────────────────────────────────────────────── */}
+      {showSearch && (
+        <div className="px-4 pt-3 pb-1 border-b border-gray-800 bg-gray-900 shrink-0 flex items-center gap-2">
+          <Search className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search messages…"
+            className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-600 outline-none"
+          />
+          {searchQuery && (
+            <span className="text-xs text-gray-600 shrink-0">
+              {filteredMessages.length} result{filteredMessages.length !== 1 ? "s" : ""}
+            </span>
+          )}
+          <button
+            onClick={() => { setShowSearch(false); setSearchQuery(""); }}
+            className="text-gray-600 hover:text-gray-300 shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* ── Chat messages ────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {messages.length === 0 ? (
@@ -685,22 +746,34 @@ export default function NodeChat({ topicId, topicName, initialMessages = [] }: N
               }
             </p>
           </div>
+        ) : filteredMessages.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-600 text-sm">
+            No messages match "{searchQuery}"
+          </div>
         ) : (
-          messages.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+          filteredMessages.map((msg, idx) => (
+            <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} ${msg.role === "user" ? "message-enter-user" : "message-enter-ai"}`}>
               {msg.role === "assistant" && (
-                <div className="w-7 h-7 rounded-full bg-violet-950 border border-violet-800 flex items-center justify-center mr-2 mt-0.5 shrink-0">
+                <div className="w-7 h-7 rounded-full bg-violet-950 border border-violet-800 flex items-center justify-center mr-2 mt-0.5 shrink-0 animate-node-pulse">
                   <Zap className="w-3.5 h-3.5 text-violet-400" />
                 </div>
               )}
               <div
-                className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                   msg.role === "user"
-                    ? "bg-violet-600 text-white rounded-br-sm"
+                    ? "bg-violet-600 text-white rounded-br-sm whitespace-pre-wrap"
                     : "bg-gray-800 text-gray-100 rounded-bl-sm"
                 }`}
               >
-                {msg.content || (
+                {msg.content ? (
+                  msg.role === "assistant" ? (
+                    searchQuery
+                      ? <span className="whitespace-pre-wrap">{highlightText(msg.content, searchQuery)}</span>
+                      : <MarkdownContent content={msg.content} />
+                  ) : (
+                    searchQuery ? highlightText(msg.content, searchQuery) : msg.content
+                  )
+                ) : (
                   <span className="inline-flex gap-1 items-center py-0.5">
                     <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce [animation-delay:0ms]" />
                     <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce [animation-delay:150ms]" />
@@ -744,6 +817,16 @@ export default function NodeChat({ topicId, topicName, initialMessages = [] }: N
             className="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 text-xs font-medium transition-colors disabled:opacity-40 flex items-center gap-1.5"
           >
             <History className="w-3.5 h-3.5" /> History
+          </button>
+          <button
+            onClick={() => setShowSearch(s => !s)}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              showSearch
+                ? "bg-violet-950 border-violet-800 text-violet-300"
+                : "bg-gray-800 hover:bg-gray-700 border-gray-700 text-gray-300"
+            }`}
+          >
+            <Search className="w-3.5 h-3.5" /> Search
           </button>
         </div>
 

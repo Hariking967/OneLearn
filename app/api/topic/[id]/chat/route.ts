@@ -9,6 +9,7 @@ import {
 interface ChatRequest {
   userMessage: string;
   messageHistory?: Array<{ role: "user" | "assistant"; content: string }>;
+  sessionId?: string;
 }
 
 interface ChatError {
@@ -30,7 +31,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
     }
 
-    const { userMessage, messageHistory } = body;
+    const { userMessage, messageHistory, sessionId } = body;
 
     if (!userMessage?.trim()) {
       return NextResponse.json({ error: "userMessage is required" }, { status: 400 });
@@ -41,7 +42,7 @@ export async function POST(
 
     console.log(`[Chat API] topic=${topicId} msg="${userMessage.slice(0, 60)}"`);
 
-    await saveChatMessage(topicId, "user", userMessage);
+    await saveChatMessage(topicId, "user", userMessage, sessionId);
 
     const messages =
       messageHistory?.length ? messageHistory : await getNodeChatHistory(topicId, 20);
@@ -143,7 +144,7 @@ export async function POST(
 
         if (fullResponse) {
           try {
-            await saveChatMessage(topicId, "assistant", fullResponse);
+            await saveChatMessage(topicId, "assistant", fullResponse, sessionId);
             refreshTopicMemory(topicId).catch(console.error);
           } catch (e) {
             console.error("[Chat API] Failed to save assistant message:", e);

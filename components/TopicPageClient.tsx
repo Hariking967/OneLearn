@@ -45,12 +45,12 @@ export function TopicPageClient({ topic, projectId, initialMessages, sessionId }
     }
   }
 
-  const createSession = async () => {
+  const createSession = async (name?: string) => {
     try {
       const res = await fetch(`/api/topic/${topic.id}/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify(name ? { name } : {}),
       })
       if (!res.ok) return
       const s = await res.json()
@@ -155,7 +155,7 @@ export function TopicPageClient({ topic, projectId, initialMessages, sessionId }
               {s.name}
             </button>
             <button
-              onClick={() => deleteSession(s.id)}
+              onClick={() => { if (window.confirm('Delete this chat session? This cannot be undone.')) { deleteSession(s.id); } }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#374151', padding: '0 2px', display: 'flex', alignItems: 'center' }}
               onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = '#6b7280'}
               onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = '#374151'}
@@ -166,7 +166,11 @@ export function TopicPageClient({ topic, projectId, initialMessages, sessionId }
         ))}
 
         <button
-          onClick={createSession}
+          onClick={() => {
+            const name = window.prompt('Session name:', `Chat ${sessions.length + 2}`);
+            if (name === null) return;
+            createSession(name);
+          }}
           style={{
             display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px',
             borderRadius: 7, background: 'none', border: '1px dashed #374151',
@@ -180,7 +184,7 @@ export function TopicPageClient({ topic, projectId, initialMessages, sessionId }
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <NodeChat topicId={topic.id} topicName={topic.name} initialMessages={initialMessages} />
+        <NodeChat topicId={topic.id} topicName={topic.name} initialMessages={initialMessages} sessionId={activeSession ?? undefined} />
       </div>
     </div>
   )
