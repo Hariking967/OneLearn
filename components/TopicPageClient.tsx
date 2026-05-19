@@ -45,7 +45,7 @@ export function TopicPageClient({ topic, projectId, initialMessages, sessionId, 
   const togglePanel = () => {
     const next = !panelOpen
     setPanelOpen(next)
-    localStorage.setItem('resources-panel-open', String(next))
+    try { localStorage.setItem('resources-panel-open', String(next)) } catch {}
   }
 
   const handleDeleteResource = async (id: string) => {
@@ -53,7 +53,7 @@ export function TopicPageClient({ topic, projectId, initialMessages, sessionId, 
       await fetch(`/api/projects/${projectId}/resources/${id}`, { method: 'DELETE' })
       setResources(prev => prev.filter(r => r.id !== id))
     } catch {
-      setResources(prev => prev.filter(r => r.id !== id))
+      // leave state unchanged on failure
     }
   }
 
