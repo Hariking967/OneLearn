@@ -5,6 +5,7 @@ import {
   getNodeChatHistory,
   refreshTopicMemory,
 } from "@/lib/chat/node-chat-service";
+import { createClient } from "@/lib/supabase/server";
 
 interface ChatRequest {
   userMessage: string;
@@ -22,6 +23,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response | NextResponse<ChatError>> {
   const { id: topicId } = await params;
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
     let body: ChatRequest;

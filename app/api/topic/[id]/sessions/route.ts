@@ -30,7 +30,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .eq('topic_id', topicId)
     .eq('user_id', user.id)
 
-  const name = body.name || `Chat ${(existing?.length ?? 0) + 1}`
+  let name = body.name || `Chat ${(existing?.length ?? 0) + 1}`
+  if (name) name = name.slice(0, 100)
 
   const { data, error } = await supabase
     .from('chat_sessions')

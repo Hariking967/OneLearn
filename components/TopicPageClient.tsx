@@ -23,11 +23,15 @@ export function TopicPageClient({ topic, projectId, initialMessages, sessionId }
   const [sessions, setSessions] = useState<Array<{ id: string; name: string }>>([])
   const [activeSession, setActiveSession] = useState<string | undefined>(sessionId)
 
-  useEffect(() => {
+  const fetchSessions = () => {
     fetch(`/api/topic/${topic.id}/sessions`)
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setSessions(data) })
       .catch(() => {})
+  }
+
+  useEffect(() => {
+    fetchSessions()
   }, [topic.id])
 
   const toggle = async () => {
@@ -68,7 +72,9 @@ export function TopicPageClient({ topic, projectId, initialMessages, sessionId }
         setActiveSession(undefined)
         router.push(`/project/${projectId}/topic/${topic.id}`)
       }
-    } catch {}
+    } catch {
+      fetchSessions()
+    }
   }
 
   const statusBadgeClass =
@@ -184,7 +190,7 @@ export function TopicPageClient({ topic, projectId, initialMessages, sessionId }
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <NodeChat topicId={topic.id} topicName={topic.name} initialMessages={initialMessages} sessionId={activeSession ?? undefined} />
+        <NodeChat key={activeSession ?? 'main'} topicId={topic.id} topicName={topic.name} initialMessages={initialMessages} sessionId={activeSession ?? undefined} />
       </div>
     </div>
   )

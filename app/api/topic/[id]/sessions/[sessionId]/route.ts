@@ -5,7 +5,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; sessionId: string }> }
 ) {
-  const { sessionId } = await params
+  const { id: topicId, sessionId } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -14,6 +14,7 @@ export async function DELETE(
     .from('chat_sessions')
     .delete()
     .eq('id', sessionId)
+    .eq('topic_id', topicId)
     .eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
