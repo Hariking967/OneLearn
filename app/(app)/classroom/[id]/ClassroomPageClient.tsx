@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { AddStudentDialog } from '@/components/classroom/AddStudentDialog'
 import { AssignmentCreatorDialog } from '@/components/classroom/AssignmentCreatorDialog'
+import { AssignmentReportDialog } from '@/components/classroom/AssignmentReportDialog'
 import { FeedTab } from '@/components/classroom/FeedTab'
 import type { Classroom, ClassroomAssignment, AssignmentSubmission } from '@/lib/supabase/types'
 
@@ -341,26 +342,29 @@ export function ClassroomPageClient({
                       </div>
 
                       {isTeacher ? (
-                        <button
-                          onClick={() => toggleAssignmentSubmissions(a.id)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 5,
-                            padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
-                            background: 'var(--bg-3)', border: '1px solid var(--line)',
-                            color: 'var(--mute)', fontSize: 11, fontFamily: 'var(--font-sans)',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {submissionsLoading === a.id ? (
-                            <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                          ) : (
-                            <>
-                              <Eye size={12} />
-                              {subData ? `${submittedCount} submitted` : 'Submissions'}
-                              {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                            </>
-                          )}
-                        </button>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                          <AssignmentReportDialog classroomId={classroom.id} assignmentId={a.id} assignmentTitle={a.title} />
+                          <button
+                            onClick={() => toggleAssignmentSubmissions(a.id)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 5,
+                              padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
+                              background: 'var(--bg-3)', border: '1px solid var(--line)',
+                              color: 'var(--mute)', fontSize: 11, fontFamily: 'var(--font-sans)',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {submissionsLoading === a.id ? (
+                              <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                            ) : (
+                              <>
+                                <Eye size={12} />
+                                {subData ? `${submittedCount} submitted` : 'Submissions'}
+                                {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                              </>
+                            )}
+                          </button>
+                        </div>
                       ) : submitted ? (
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: 5,
