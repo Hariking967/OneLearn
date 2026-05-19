@@ -1,27 +1,35 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronLeft, CheckCircle, RotateCcw, Loader2, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckCircle, RotateCcw, Loader2, Plus, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import NodeChat from '@/components/NodeChat'
-import type { Topic } from '@/lib/supabase/types'
+import { ResourceList } from '@/components/resource/ResourceList'
+import type { Topic, Resource } from '@/lib/supabase/types'
 
 interface Props {
   topic: Topic
   projectId: string
   initialMessages: Array<{ role: 'user' | 'assistant'; content: string }>
   sessionId?: string
+  resources: Resource[]
 }
 
-export function TopicPageClient({ topic, projectId, initialMessages, sessionId }: Props) {
+export function TopicPageClient({ topic, projectId, initialMessages, sessionId, resources: initialResources }: Props) {
   const router = useRouter()
   const [status, setStatus] = useState<Topic['status']>(topic.status)
   const [updating, setUpdating] = useState(false)
   const [sessions, setSessions] = useState<Array<{ id: string; name: string }>>([])
   const [activeSession, setActiveSession] = useState<string | undefined>(sessionId)
+  const [resources, setResources] = useState<Resource[]>(initialResources)
+  const [panelOpen, setPanelOpen] = useState(() => {
+    if (typeof window === 'undefined') return true
+    const stored = localStorage.getItem('resources-panel-open')
+    return stored !== null ? stored === 'true' : window.innerWidth >= 1024
+  })
 
   const fetchSessions = () => {
     fetch(`/api/topic/${topic.id}/sessions`)
@@ -33,6 +41,21 @@ export function TopicPageClient({ topic, projectId, initialMessages, sessionId }
   useEffect(() => {
     fetchSessions()
   }, [topic.id])
+
+  const togglePanel = () => {
+    const next = !panelOpen
+    setPanelOpen(next)
+    localStorage.setItem('resources-panel-open', String(next))
+  }
+
+  const handleDeleteResource = async (id: string) => {
+    try {
+      await fetch(`/api/projects/${projectId}/resources/${id}`, { method: 'DELETE' })
+      setResources(prev => prev.filter(r => r.id !== id))
+    } catch {
+      setResources(prev => prev.filter(r => r.id !== id))
+    }
+  }
 
   const toggle = async () => {
     const next = status === 'done' ? 'unlocked' : 'done'
@@ -189,8 +212,87 @@ export function TopicPageClient({ topic, projectId, initialMessages, sessionId }
         </button>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <NodeChat key={activeSession ?? 'main'} topicId={topic.id} topicName={topic.name} initialMessages={initialMessages} sessionId={activeSession ?? undefined} />
+      {/* Chat + Resources split area */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+        {/* Chat area */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <NodeChat
+            key={activeSession ?? 'main'}
+            topicId={topic.id}
+            topicName={topic.name}
+            initialMessages={initialMessages}
+            sessionId={activeSession ?? undefined}
+          />
+        </div>
+
+        {/* Panel toggle button */}
+        <button
+          onClick={togglePanel}
+          title={panelOpen ? 'Hide resources' : 'Show resources'}
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: panelOpen ? 332 : 8,
+            zIndex: 10,
+            width: 24,
+            height: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 6,
+            border: '1px solid #1f2937',
+            background: 'rgba(17,24,39,0.8)',
+            color: '#6b7280',
+            cursor: 'pointer',
+            transition: 'right 0.2s ease, color 0.15s, background 0.15s',
+            flexShrink: 0,
+          }}
+          onMouseEnter={e => {
+            const btn = e.currentTarget as HTMLButtonElement
+            btn.style.color = '#d1d5db'
+            btn.style.background = 'rgba(55,65,81,0.9)'
+          }}
+          onMouseLeave={e => {
+            const btn = e.currentTarget as HTMLButtonElement
+            btn.style.color = '#6b7280'
+            btn.style.background = 'rgba(17,24,39,0.8)'
+          }}
+        >
+          {panelOpen ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+
+        {/* Resources panel */}
+        {panelOpen && (
+          <div style={{
+            width: 320,
+            borderLeft: '1px solid #1f2937',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            background: 'rgba(17,24,39,0.5)',
+            flexShrink: 0,
+          }}>
+            <div style={{
+              padding: '10px 16px',
+              borderBottom: '1px solid #1f2937',
+              fontWeight: 600,
+              fontSize: 12,
+              color: '#6b7280',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              flexShrink: 0,
+            }}>
+              Resources
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+              <ResourceList
+                projectId={projectId}
+                resources={resources}
+                onDelete={handleDeleteResource}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
