@@ -1,0 +1,62 @@
+<h2>What should "File View" look like for Projects?</h2>
+<p class="subtitle">The Tree View (react-flow graph) already exists. File View is a different way to navigate the same topics.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f0f13;padding:12px;border-radius:6px;font-size:11px;font-family:monospace;">
+      <div style="background:#1e1e2e;padding:8px;border-radius:4px;height:110px;overflow:hidden;">
+        <div style="color:#6366f1;margin-bottom:6px;font-size:10px;">📁 Machine Learning</div>
+        <div style="padding-left:14px;color:#aaa;font-size:10px;margin-bottom:3px;">▼ 📂 Prerequisites</div>
+        <div style="padding-left:28px;color:#ccc;font-size:10px;margin-bottom:3px;">📄 Linear Algebra</div>
+        <div style="padding-left:28px;color:#ccc;font-size:10px;margin-bottom:3px;">📄 Calculus</div>
+        <div style="padding-left:28px;color:#ccc;font-size:10px;margin-bottom:3px;">📄 Statistics</div>
+        <div style="padding-left:14px;color:#aaa;font-size:10px;margin-bottom:3px;">▶ 📂 Core Topics</div>
+        <div style="padding-left:14px;color:#aaa;font-size:10px;">▶ 📂 Advanced</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — File Explorer Tree (VS Code style)</h3>
+      <p>Collapsible folders for topic groups. Click a topic to open its chat/content. Same topics as graph, just in a file-tree UI.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f0f13;padding:12px;border-radius:6px;font-size:11px;font-family:monospace;">
+      <div style="display:flex;gap:6px;height:110px;">
+        <div style="width:90px;background:#1e1e2e;border-radius:4px;padding:6px;overflow:hidden;">
+          <div style="color:#6366f1;font-size:9px;margin-bottom:4px;">TOPICS</div>
+          <div style="background:#6366f1;color:white;padding:2px 5px;border-radius:2px;font-size:9px;margin-bottom:2px;">Linear Alg</div>
+          <div style="background:#16213e;color:#888;padding:2px 5px;border-radius:2px;font-size:9px;margin-bottom:2px;">Calculus</div>
+          <div style="background:#16213e;color:#888;padding:2px 5px;border-radius:2px;font-size:9px;margin-bottom:2px;">Stats</div>
+          <div style="background:#16213e;color:#888;padding:2px 5px;border-radius:2px;font-size:9px;margin-bottom:2px;">ML Basics</div>
+        </div>
+        <div style="flex:1;background:#1e1e2e;border-radius:4px;padding:6px;">
+          <div style="color:#ccc;font-size:9px;margin-bottom:4px;">Linear Algebra</div>
+          <div style="background:#16213e;height:12px;border-radius:2px;margin-bottom:3px;"></div>
+          <div style="background:#16213e;height:12px;border-radius:2px;margin-bottom:3px;"></div>
+          <div style="background:#10b981;color:white;padding:2px 6px;border-radius:2px;font-size:9px;display:inline-block;">Open Chat</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — List + Detail Panel</h3>
+      <p>Left: flat/indented list of all topics. Right: selected topic's details, progress, resources, open chat button.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f0f13;padding:12px;border-radius:6px;font-size:11px;font-family:monospace;">
+      <div style="background:#1e1e2e;padding:8px;border-radius:4px;height:110px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;align-content:start;">
+        <div style="background:#6366f1;border-radius:3px;padding:4px;font-size:8px;color:white;">📄 Linear Algebra<br/><span style="color:#c7d2fe;">✓ Done</span></div>
+        <div style="background:#10b981;border-radius:3px;padding:4px;font-size:8px;color:white;">📄 Calculus<br/><span style="color:#a7f3d0;">In progress</span></div>
+        <div style="background:#374151;border-radius:3px;padding:4px;font-size:8px;color:#888;">📄 Statistics<br/><span>Locked</span></div>
+        <div style="background:#374151;border-radius:3px;padding:4px;font-size:8px;color:#888;">📄 ML Basics<br/><span>Locked</span></div>
+        <div style="background:#374151;border-radius:3px;padding:4px;font-size:8px;color:#888;">📄 Neural Nets<br/><span>Locked</span></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Card Grid (Kanban-lite)</h3>
+      <p>Topics as clickable cards with status colors. Done/In-progress/Locked states visible at a glance. Click to open topic.</p>
+    </div>
+  </div>
+</div>

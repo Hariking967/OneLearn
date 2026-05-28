@@ -1,0 +1,26 @@
+<h2>Multiple Chats Per Topic — how should they work?</h2>
+<p class="subtitle">Each topic can have multiple chat sessions. What's the memory model?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Isolated sessions — no shared memory</h3>
+      <p>Each chat starts fresh. Chat 1 history doesn't bleed into Chat 2. Good for "practice session" vs "study session" use cases. RAG from project resources still applies to all.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Shared topic memory — separate threads</h3>
+      <p>All chats under a topic share the same compressed topic memory (what you've learned). Each chat has its own message history but the AI "remembers" progress across all of them.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Named sessions — fully independent</h3>
+      <p>User names each chat (e.g. "Study session", "Exam prep", "Homework help"). Each is totally separate — own history, own memory. Like separate notebooks for the same topic.</p>
+    </div>
+  </div>
+</div>
