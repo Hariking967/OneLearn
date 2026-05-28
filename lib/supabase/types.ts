@@ -199,6 +199,65 @@ export interface UserTreeNode {
   created_at: string
 }
 
+export interface ClassroomResourceSection {
+  id: string
+  classroom_id: string
+  title: string
+  order_index: number
+  created_at: string
+}
+
+export interface ClassroomResourceFile {
+  id: string
+  section_id: string
+  classroom_id: string
+  name: string
+  type: string
+  storage_path: string | null
+  url: string | null
+  size_bytes: number | null
+  ingested: boolean
+  created_at: string
+}
+
+export interface ClassroomResourceChunk {
+  id: string
+  classroom_id: string
+  file_id: string | null
+  user_id: string | null
+  chunk_index: number
+  content: string
+  created_at: string
+}
+
+export interface PersonalResource {
+  id: string
+  classroom_id: string
+  user_id: string
+  name: string
+  type: string
+  storage_path: string | null
+  size_bytes: number | null
+  ingested: boolean
+  created_at: string
+}
+
+export interface ClassroomAIChat {
+  id: string
+  classroom_id: string
+  user_id: string
+  title: string
+  created_at: string
+}
+
+export interface ClassroomAIMessage {
+  id: string
+  chat_id: string
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+}
+
 type TableDef<Row, Insert, Update> = {
   Row: Row
   Insert: Insert
@@ -230,6 +289,12 @@ export interface Database {
       feed_posts:             TableDef<FeedPost,             Omit<FeedPost, 'id' | 'created_at' | 'author_name'>,  Partial<Omit<FeedPost, 'id'>>>
       feed_replies:           TableDef<FeedReply,            Omit<FeedReply, 'id' | 'created_at' | 'author_name' | 'replies'>, Partial<Omit<FeedReply, 'id'>>>
       user_tree_nodes:        TableDef<UserTreeNode,         Omit<UserTreeNode, 'id' | 'created_at'>,              Partial<Omit<UserTreeNode, 'id'>>>
+      classroom_resource_sections: TableDef<ClassroomResourceSection, Omit<ClassroomResourceSection,'id'|'created_at'>, Partial<Omit<ClassroomResourceSection,'id'>>>
+      classroom_resource_files:    TableDef<ClassroomResourceFile,    Omit<ClassroomResourceFile,'id'|'created_at'>,    Partial<Omit<ClassroomResourceFile,'id'>>>
+      classroom_resource_chunks:   TableDef<ClassroomResourceChunk,   Omit<ClassroomResourceChunk,'id'|'created_at'>,   Partial<Omit<ClassroomResourceChunk,'id'>>>
+      personal_resources:          TableDef<PersonalResource,         Omit<PersonalResource,'id'|'created_at'>,          Partial<Omit<PersonalResource,'id'>>>
+      classroom_ai_chats:          TableDef<ClassroomAIChat,          Omit<ClassroomAIChat,'id'|'created_at'>,           Partial<Omit<ClassroomAIChat,'id'>>>
+      classroom_ai_messages:       TableDef<ClassroomAIMessage,       Omit<ClassroomAIMessage,'id'|'created_at'>,        Partial<Omit<ClassroomAIMessage,'id'>>>
     }
     Views: Record<string, never>
     Functions: Record<string, never>
