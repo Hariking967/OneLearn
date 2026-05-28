@@ -274,6 +274,18 @@ export function MeetTab({ classroomId, isTeacher, currentUserId, currentUserName
   if (activeMeet && joined) {
     return (
       <div style={{ maxWidth: 900, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Jitsi video meet */}
+        <iframe
+          src={`https://meet.jit.si/onelearn-${classroomId.slice(0, 8)}-${activeMeet.id.slice(0, 8)}#userInfo.displayName="${encodeURIComponent(currentUserName)}"&config.startWithAudioMuted=false&config.startWithVideoMuted=false&interfaceConfig.SHOW_JITSI_WATERMARK=false`}
+          allow="camera; microphone; fullscreen; display-capture; autoplay"
+          style={{
+            width: '100%',
+            height: 420,
+            border: 'none',
+            borderRadius: 12,
+          }}
+          title="Video Meet"
+        />
         {/* Meet header */}
         <div style={{
           borderRadius: 14, overflow: 'hidden',
