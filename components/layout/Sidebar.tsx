@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, LogOut, GraduationCap } from 'lucide-react'
+import { LogOut, GraduationCap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface SidebarProps {
@@ -21,7 +21,6 @@ export function Sidebar({ userEmail }: SidebarProps) {
   }
 
   const navItems = [
-    { href: '/dashboard', label: 'Projects', icon: LayoutDashboard, meta: null },
     { href: '/classrooms', label: 'Classrooms', icon: GraduationCap, meta: null },
   ]
 
