@@ -74,5 +74,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   await admin.from('classroom_resource_files').update({ ingested: true }).eq('id', fileId)
 
+  // Auto-announce resource added
+  supabase.from('feed_posts').insert({
+    classroom_id: id,
+    author_id: user.id,
+    type: 'announcement' as const,
+    title: `Resource added: ${file.name}`,
+    body: `A new resource "${file.name}" has been added and is now available in the Resources tab.`,
+  }).then(() => {}).catch(() => {})
+
   return NextResponse.json({ chunks: chunks.length })
 }
