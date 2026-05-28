@@ -42,30 +42,6 @@ export default async function ClassroomPage({ params }: { params: Promise<{ id: 
     .eq('classroom_id', id)
     .order('created_at', { ascending: false })
 
-  // Get projects
-  let projects: any[] = []
-  if (isTeacher) {
-    const { data } = await supabase
-      .from('classroom_projects')
-      .select('*, projects(*)')
-      .eq('classroom_id', id)
-    projects = data ?? []
-  } else {
-    // Student: fetch their copies linked to this classroom's projects
-    const { data: cpData } = await supabase
-      .from('classroom_projects').select('id').eq('classroom_id', id)
-    const cpIds = (cpData ?? []).map(c => c.id)
-
-    if (cpIds.length > 0) {
-      const { data } = await supabase
-        .from('student_project_copies')
-        .select('*, projects(*)')
-        .in('classroom_project_id', cpIds)
-        .eq('student_id', user.id)
-      projects = data ?? []
-    }
-  }
-
   // Student's own submissions
   const { data: mySubmissions } = await supabase
     .from('assignment_submissions')
@@ -85,7 +61,6 @@ export default async function ClassroomPage({ params }: { params: Promise<{ id: 
       classroom={classroom}
       members={members}
       assignments={assignments ?? []}
-      projects={projects}
       mySubmissions={mySubmissions ?? []}
       isTeacher={isTeacher}
       currentUserId={user.id}
