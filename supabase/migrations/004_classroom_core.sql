@@ -18,7 +18,7 @@ create policy "members can read sections" on classroom_resource_sections for sel
 create policy "teacher can manage sections" on classroom_resource_sections for all
   using (exists(select 1 from classrooms c where c.id = classroom_id and c.teacher_id = auth.uid()));
 
--- Resource files
+-- Resource files (must be defined BEFORE classroom_resource_chunks for FK reference)
 create table if not exists classroom_resource_files (
   id uuid primary key default gen_random_uuid(),
   section_id uuid references classroom_resource_sections(id) on delete cascade not null,
@@ -41,10 +41,11 @@ create policy "teacher can manage files" on classroom_resource_files for all
   using (exists(select 1 from classrooms c where c.id = classroom_id and c.teacher_id = auth.uid()));
 
 -- Chunks for RAG (shared: user_id null; personal: user_id set)
+-- Fix 2: file_id now has FK to classroom_resource_files (files table defined above)
 create table if not exists classroom_resource_chunks (
   id uuid primary key default gen_random_uuid(),
   classroom_id uuid references classrooms(id) on delete cascade not null,
-  file_id uuid,
+  file_id uuid references classroom_resource_files(id) on delete cascade,
   user_id uuid,
   chunk_index int not null default 0,
   content text not null,
@@ -62,14 +63,25 @@ create policy "read own or shared chunks" on classroom_resource_chunks for selec
   );
 create policy "insert own chunks" on classroom_resource_chunks for insert
   with check (user_id = auth.uid() or user_id is null);
-create policy "delete own chunks" on classroom_resource_chunks for delete
-  using (user_id = auth.uid() or user_id is null);
+-- Fix 4: secure delete policy — teacher can delete shared (null user_id) chunks too
+create policy "delete own or teacher chunks" on classroom_resource_chunks for delete
+  using (
+    user_id = auth.uid()
+    or (user_id is null and exists(
+      select 1 from classrooms c where c.id = classroom_id and c.teacher_id = auth.uid()
+    ))
+  );
+
+-- Fix 1: HNSW index on embedding (preferred over IVFFlat for sparse tables)
+create index if not exists classroom_resource_chunks_embedding_idx
+  on classroom_resource_chunks using hnsw (embedding vector_cosine_ops);
 
 -- Personal resources (per-user, not shared)
+-- Fix 3a: user_id now has FK to auth.users
 create table if not exists personal_resources (
   id uuid primary key default gen_random_uuid(),
   classroom_id uuid references classrooms(id) on delete cascade not null,
-  user_id uuid not null,
+  user_id uuid references auth.users(id) on delete cascade not null,
   name text not null,
   type text not null,
   storage_path text,
@@ -82,10 +94,11 @@ create policy "own personal resources" on personal_resources for all
   using (user_id = auth.uid());
 
 -- OneAI chats
+-- Fix 3b: user_id now has FK to auth.users
 create table if not exists classroom_ai_chats (
   id uuid primary key default gen_random_uuid(),
   classroom_id uuid references classrooms(id) on delete cascade not null,
-  user_id uuid not null,
+  user_id uuid references auth.users(id) on delete cascade not null,
   title text not null default 'New Chat',
   created_at timestamptz default now()
 );
