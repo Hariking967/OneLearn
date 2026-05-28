@@ -38,7 +38,7 @@ export default function TopicTree({ topics, selectedTopicId, onSelectTopic }: Tr
     return <div className="p-4 text-gray-500">No topics available</div>;
   }
 
-  const renderNode = (topicId: string, depth: number = 0): JSX.Element => {
+  const renderNode = (topicId: string, depth: number = 0): React.ReactElement => {
     const topic = topics.find((t) => t.id === topicId);
     if (!topic) return <></>;
 

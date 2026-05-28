@@ -1,54 +1,81 @@
 'use client'
 
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import ReactFlow, {
   Background,
   Controls,
-  MiniMap,
   type Node,
   type Edge,
   Position,
   Handle,
   useNodesState,
   useEdgesState,
-  addEdge,
-  type Connection,
   MarkerType,
+  BackgroundVariant,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { useRouter } from 'next/navigation'
 import type { Topic, TopicEdge } from '@/lib/supabase/types'
-import { cn } from '@/lib/utils'
 
-// Custom topic node
+const NODE_W = 172
+const NODE_H = 64
+const H_GAP = 32   // horizontal gap between siblings
+const V_GAP = 90   // vertical gap between levels
+
 function TopicNode({ data }: { data: { label: string; description: string; status: Topic['status']; topicUrl: string } }) {
   const router = useRouter()
-  const statusStyles: Record<Topic['status'], string> = {
-    locked:   'border-gray-300 bg-gray-50 text-gray-400',
-    unlocked: 'border-primary bg-primary/5 text-foreground hover:bg-primary/10 cursor-pointer',
-    done:     'border-green-400 bg-green-50 text-green-800',
-  }
+
+  const accent =
+    data.status === 'done'     ? { border: 'oklch(0.72 0.18 145)', bg: 'oklch(0.72 0.18 145 / 0.08)', text: 'oklch(0.85 0.12 145)' } :
+    data.status === 'unlocked' ? { border: 'oklch(0.68 0.19 295)', bg: 'oklch(0.68 0.19 295 / 0.08)', text: 'var(--ink)' } :
+                                 { border: 'rgba(255,255,255,0.08)', bg: 'rgba(255,255,255,0.02)', text: 'var(--mute)' }
 
   return (
     <>
-      <Handle type="target" position={Position.Top} className="!bg-muted-foreground/40" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: 'var(--purple)', border: 'none', width: 6, height: 6 }}
+      />
       <div
-        className={cn(
-          'px-4 py-3 rounded-xl border-2 shadow-sm min-w-[140px] max-w-[180px] transition-all',
-          statusStyles[data.status]
-        )}
         onClick={() => data.status !== 'locked' && router.push(data.topicUrl)}
         title={data.description}
+        style={{
+          width: NODE_W, minHeight: NODE_H,
+          padding: '10px 14px',
+          borderRadius: 12,
+          border: `1px solid ${accent.border}`,
+          background: accent.bg,
+          backdropFilter: 'blur(8px)',
+          cursor: data.status === 'locked' ? 'default' : 'pointer',
+          transition: 'all 0.18s',
+          display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4,
+          boxShadow: data.status === 'unlocked' ? '0 0 18px oklch(0.68 0.19 295 / 0.15)' : 'none',
+        }}
       >
-        <div className="text-xs font-semibold text-center leading-tight">{data.label}</div>
+        <div style={{
+          fontSize: 12, fontWeight: 500,
+          fontFamily: 'var(--font-sans)', color: accent.text,
+          textAlign: 'center', lineHeight: 1.35,
+        }}>
+          {data.label}
+        </div>
         {data.status === 'done' && (
-          <div className="text-xs text-center mt-1 text-green-600">✓ Done</div>
+          <div style={{ fontSize: 10, textAlign: 'center', color: 'oklch(0.72 0.18 145)', fontFamily: 'var(--font-mono)' }}>
+            ✓ complete
+          </div>
         )}
         {data.status === 'locked' && (
-          <div className="text-xs text-center mt-1">🔒 Locked</div>
+          <div style={{ fontSize: 10, textAlign: 'center', color: 'var(--mute)', fontFamily: 'var(--font-mono)' }}>
+            🔒 locked
+          </div>
         )}
       </div>
-      <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground/40" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ background: 'var(--purple)', border: 'none', width: 6, height: 6 }}
+      />
     </>
   )
 }
@@ -61,78 +88,129 @@ interface Props {
   projectId: string
 }
 
-export function TopicGraph({ topics, edges, projectId }: Props) {
-  // Auto-layout: place nodes by topological depth
-  const depthMap = useMemo(() => {
-    const depth = new Map<string, number>()
-    topics.forEach(t => depth.set(t.id, 0))
-    // Simple BFS to assign levels
-    let changed = true
-    while (changed) {
-      changed = false
-      edges.forEach(e => {
-        const parentDepth = depth.get(e.parent_id) ?? 0
-        const childDepth = depth.get(e.child_id) ?? 0
-        if (childDepth <= parentDepth) {
-          depth.set(e.child_id, parentDepth + 1)
-          changed = true
-        }
-      })
+// Reingold-Tilford-inspired tree layout:
+// 1. Build adjacency (parent→children)
+// 2. Post-order DFS to compute subtree widths
+// 3. Pre-order DFS to assign x by centering children under parent
+function buildTreeLayout(topics: Topic[], edges: TopicEdge[]): Map<string, { x: number; y: number }> {
+  const children = new Map<string, string[]>()
+  const parents = new Map<string, string[]>()
+  topics.forEach(t => { children.set(t.id, []); parents.set(t.id, []) })
+  edges.forEach(e => {
+    children.get(e.parent_id)?.push(e.child_id)
+    parents.get(e.child_id)?.push(e.parent_id)
+  })
+
+  // Assign depth via BFS from roots (nodes with no parents)
+  const depth = new Map<string, number>()
+  const roots = topics.filter(t => (parents.get(t.id)?.length ?? 0) === 0).map(t => t.id)
+  if (roots.length === 0 && topics.length > 0) roots.push(topics[0].id) // fallback
+
+  const queue = [...roots]
+  roots.forEach(r => depth.set(r, 0))
+  while (queue.length > 0) {
+    const cur = queue.shift()!
+    const d = depth.get(cur) ?? 0
+    for (const child of children.get(cur) ?? []) {
+      if (!depth.has(child) || depth.get(child)! < d + 1) {
+        depth.set(child, d + 1)
+        queue.push(child)
+      }
     }
-    return depth
-  }, [topics, edges])
+  }
+  // Assign depth 0 to any orphaned nodes
+  topics.forEach(t => { if (!depth.has(t.id)) depth.set(t.id, 0) })
 
-  const levelGroups = useMemo(() => {
-    const groups = new Map<number, Topic[]>()
-    topics.forEach(t => {
-      const level = depthMap.get(t.id) ?? 0
-      if (!groups.has(level)) groups.set(level, [])
-      groups.get(level)!.push(t)
-    })
-    return groups
-  }, [topics, depthMap])
+  // Compute subtree leaf-count (used as width unit)
+  const leafWidth = new Map<string, number>()
+  function computeWidth(id: string, visited = new Set<string>()): number {
+    if (visited.has(id)) return 1
+    visited.add(id)
+    const ch = children.get(id) ?? []
+    if (ch.length === 0) { leafWidth.set(id, 1); return 1 }
+    const w = ch.reduce((sum, c) => sum + computeWidth(c, visited), 0)
+    leafWidth.set(id, w)
+    return w
+  }
+  roots.forEach(r => computeWidth(r))
+  topics.forEach(t => { if (!leafWidth.has(t.id)) leafWidth.set(t.id, 1) })
 
-  const initialNodes: Node[] = useMemo(() => {
-    const nodes: Node[] = []
-    levelGroups.forEach((levelTopics, level) => {
-      const count = levelTopics.length
-      levelTopics.forEach((t, idx) => {
-        const xSpacing = 220
-        const ySpacing = 130
-        const xOffset = -(((count - 1) * xSpacing) / 2)
-        nodes.push({
-          id: t.id,
-          type: 'topic',
-          position: { x: xOffset + idx * xSpacing, y: level * ySpacing },
-          data: {
-            label: t.name,
-            description: t.description ?? '',
-            status: t.status,
-            topicUrl: `/project/${projectId}/topic/${t.id}`,
-          },
-        })
-      })
-    })
-    return nodes
-  }, [levelGroups, projectId])
+  const pos = new Map<string, { x: number; y: number }>()
 
-  const initialEdges: Edge[] = useMemo(() =>
-    edges.map(e => ({
-      id: `${e.parent_id}-${e.child_id}`,
-      source: e.parent_id,
-      target: e.child_id,
-      animated: false,
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#6366f1' },
-      style: { stroke: '#6366f1', strokeWidth: 1.5 },
-    })),
-    [edges]
-  )
+  // Assign x positions by centering children under parent
+  function assignX(id: string, leftEdge: number, visited = new Set<string>()) {
+    if (visited.has(id)) return
+    visited.add(id)
+    const ch = children.get(id) ?? []
+    const totalWidth = (leafWidth.get(id) ?? 1) * (NODE_W + H_GAP) - H_GAP
+    const myX = leftEdge + totalWidth / 2 - NODE_W / 2
+
+    const existing = pos.get(id)
+    pos.set(id, { x: myX, y: (depth.get(id) ?? 0) * (NODE_H + V_GAP) })
+
+    let childLeft = leftEdge
+    for (const child of ch) {
+      const cw = (leafWidth.get(child) ?? 1) * (NODE_W + H_GAP)
+      assignX(child, childLeft, visited)
+      childLeft += cw
+    }
+  }
+
+  // Place each root tree side by side
+  let rootOffset = 0
+  for (const root of roots) {
+    const treeWidth = (leafWidth.get(root) ?? 1) * (NODE_W + H_GAP)
+    assignX(root, rootOffset, new Set())
+    rootOffset += treeWidth + H_GAP * 2
+  }
+
+  // Fallback: place any unpositioned nodes (disconnected)
+  let fallbackX = rootOffset
+  topics.forEach(t => {
+    if (!pos.has(t.id)) {
+      pos.set(t.id, { x: fallbackX, y: (depth.get(t.id) ?? 0) * (NODE_H + V_GAP) })
+      fallbackX += NODE_W + H_GAP
+    }
+  })
+
+  return pos
+}
+
+export function TopicGraph({ topics, edges, projectId }: Props) {
+  const posMap = useMemo(() => buildTreeLayout(topics, edges), [topics, edges])
+
+  const initialNodes: Node[] = useMemo(() => topics.map(t => ({
+    id: t.id,
+    type: 'topic',
+    position: posMap.get(t.id) ?? { x: 0, y: 0 },
+    data: {
+      label: t.name,
+      description: t.description ?? '',
+      status: t.status,
+      topicUrl: `/project/${projectId}/topic/${t.id}`,
+    },
+  })), [topics, posMap, projectId])
+
+  const initialEdges: Edge[] = useMemo(() => edges.map(e => ({
+    id: `${e.parent_id}-${e.child_id}`,
+    source: e.parent_id,
+    target: e.child_id,
+    animated: false,
+    type: 'smoothstep',
+    markerEnd: { type: MarkerType.ArrowClosed, color: 'oklch(0.68 0.19 295)' },
+    style: { stroke: 'oklch(0.68 0.19 295 / 0.5)', strokeWidth: 1.5 },
+  })), [edges])
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes)
   const [rfEdges, , onEdgesChange] = useEdgesState(initialEdges)
 
   return (
-    <div className="w-full h-full min-h-[500px] rounded-xl border overflow-hidden bg-muted/20">
+    <div style={{
+      width: '100%', height: '100%', minHeight: 500,
+      borderRadius: 14, overflow: 'hidden',
+      border: '1px solid var(--line)',
+      background: 'linear-gradient(180deg, rgba(15,15,21,0.8), rgba(10,10,15,0.9))',
+    }}>
       <ReactFlow
         nodes={nodes}
         edges={rfEdges}
@@ -140,15 +218,22 @@ export function TopicGraph({ topics, edges, projectId }: Props) {
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={{ padding: 0.3 }}
+        fitViewOptions={{ padding: 0.25 }}
         proOptions={{ hideAttribution: true }}
+        style={{ background: 'transparent' }}
       >
-        <Background gap={16} color="#e5e7eb" />
-        <Controls />
-        <MiniMap nodeColor={node => {
-          const status = (node.data as { status: Topic['status'] }).status
-          return status === 'done' ? '#4ade80' : status === 'unlocked' ? '#818cf8' : '#d1d5db'
-        }} />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={28}
+          size={1}
+          color="rgba(255,255,255,0.06)"
+        />
+        <Controls
+          style={{
+            background: 'var(--bg-2)', border: '1px solid var(--line)',
+            borderRadius: 10, overflow: 'hidden',
+          }}
+        />
       </ReactFlow>
     </div>
   )

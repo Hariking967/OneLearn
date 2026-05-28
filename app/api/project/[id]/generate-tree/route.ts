@@ -32,9 +32,9 @@ interface ErrorResponse {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<SuccessResponse | ErrorResponse>> {
-  const projectId = params.id;
+  const { id: projectId } = await params;
 
   try {
     // Validate project exists and belongs to user
@@ -114,9 +114,9 @@ export async function POST(
 // GET endpoint to check tree status
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  const projectId = params.id;
+  const { id: projectId } = await params;
 
   try {
     const { data: topics, error } = await supabase

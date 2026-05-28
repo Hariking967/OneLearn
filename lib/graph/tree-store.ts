@@ -139,20 +139,22 @@ export async function getTopicTree(projectId: string): Promise<TreeNode | null> 
       return null;
     }
 
+    const topicList = topics
+
     // Find root node
-    const root = topics.find((t) => t.level === 0);
+    const root = topicList.find((t) => t.level === 0);
     if (!root) {
       throw new Error("No root topic found");
     }
 
     // Build tree structure
     function buildTree(topicId: string): TreeNode {
-      const topic = topics.find((t) => t.id === topicId);
+      const topic = topicList.find((t) => t.id === topicId);
       if (!topic) {
         throw new Error(`Topic ${topicId} not found`);
       }
 
-      const children = topics.filter((t) => t.parent_id === topicId);
+      const children = topicList.filter((t) => t.parent_id === topicId);
 
       return {
         id: topic.id,

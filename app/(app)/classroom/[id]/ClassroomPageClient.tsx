@@ -5,12 +5,14 @@ import Link from 'next/link'
 import {
   ChevronLeft, GraduationCap, Users, BookOpen, ClipboardList,
   FolderOpen, ArrowRight, Clock, CheckCircle, Loader2, Trash2, ExternalLink,
-  ChevronDown, ChevronUp, Eye, MessageSquare
+  ChevronDown, ChevronUp, Eye, MessageSquare, Video, UserCheck
 } from 'lucide-react'
 import { AddStudentDialog } from '@/components/classroom/AddStudentDialog'
 import { AssignmentCreatorDialog } from '@/components/classroom/AssignmentCreatorDialog'
 import { AssignmentReportDialog } from '@/components/classroom/AssignmentReportDialog'
 import { FeedTab } from '@/components/classroom/FeedTab'
+import { MeetTab } from '@/components/classroom/MeetTab'
+import { FriendsPanel } from '@/components/classroom/FriendsPanel'
 import type { Classroom, ClassroomAssignment, AssignmentSubmission } from '@/lib/supabase/types'
 
 interface Member {
@@ -29,13 +31,14 @@ interface Props {
   mySubmissions: AssignmentSubmission[]
   isTeacher: boolean
   currentUserId: string
+  currentUserName: string
 }
 
-type Tab = 'projects' | 'assignments' | 'members' | 'feed'
+type Tab = 'projects' | 'assignments' | 'members' | 'feed' | 'meet' | 'friends'
 
 export function ClassroomPageClient({
   classroom, members: initialMembers, assignments: initialAssignments,
-  projects, mySubmissions, isTeacher, currentUserId
+  projects, mySubmissions, isTeacher, currentUserId, currentUserName
 }: Props) {
   const [tab, setTab] = useState<Tab>('projects')
   const [assignments, setAssignments] = useState(initialAssignments)
@@ -88,11 +91,15 @@ export function ClassroomPageClient({
         { key: 'assignments' as Tab, label: 'Assignments', icon: ClipboardList },
         { key: 'members' as Tab, label: 'Students', icon: Users },
         { key: 'feed' as Tab, label: 'Feed', icon: MessageSquare },
+        { key: 'meet' as Tab, label: 'Meet', icon: Video },
+        { key: 'friends' as Tab, label: 'Friends', icon: UserCheck },
       ]
     : [
         { key: 'projects' as Tab, label: 'Projects', icon: BookOpen },
         { key: 'assignments' as Tab, label: 'Assignments', icon: ClipboardList },
         { key: 'feed' as Tab, label: 'Feed', icon: MessageSquare },
+        { key: 'meet' as Tab, label: 'Meet', icon: Video },
+        { key: 'friends' as Tab, label: 'Friends', icon: UserCheck },
       ]
 
   return (
@@ -529,6 +536,26 @@ export function ClassroomPageClient({
         {/* FEED */}
         {tab === 'feed' && (
           <FeedTab classroomId={classroom.id} isTeacher={isTeacher} currentUserId={currentUserId} />
+        )}
+
+        {/* MEET */}
+        {tab === 'meet' && (
+          <MeetTab
+            classroomId={classroom.id}
+            isTeacher={isTeacher}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+          />
+        )}
+
+        {/* FRIENDS */}
+        {tab === 'friends' && (
+          <FriendsPanel
+            classroomId={classroom.id}
+            currentUserId={currentUserId}
+            members={members}
+            isTeacher={isTeacher}
+          />
         )}
       </div>
     </div>

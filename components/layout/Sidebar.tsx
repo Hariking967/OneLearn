@@ -2,9 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, LogOut, Sparkles, BookOpen } from 'lucide-react'
+import { LayoutDashboard, LogOut, GraduationCap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { cn } from '@/lib/utils'
 
 interface SidebarProps {
   userEmail?: string
@@ -22,80 +21,143 @@ export function Sidebar({ userEmail }: SidebarProps) {
   }
 
   const navItems = [
-    { href: '/dashboard', label: 'Projects', icon: LayoutDashboard },
+    { href: '/dashboard', label: 'Projects', icon: LayoutDashboard, meta: null },
+    { href: '/classrooms', label: 'Classrooms', icon: GraduationCap, meta: null },
   ]
 
   return (
-    <aside className="flex flex-col w-56 min-h-screen shrink-0"
-           style={{ background: '#0d0d14', borderRight: '1px solid #1e1a2e' }}>
+    <aside style={{
+      position: 'sticky', top: 0, height: '100vh',
+      width: 240, flexShrink: 0,
+      borderRight: '1px solid var(--line)',
+      background: 'linear-gradient(180deg, rgba(20,20,28,0.7), rgba(10,10,15,0.98))',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      display: 'flex', flexDirection: 'column',
+      padding: '20px 18px',
+      zIndex: 5,
+    }}>
 
-      {/* Logo */}
-      <div className="px-4 py-5" style={{ borderBottom: '1px solid hsl(270 15% 11%)' }}>
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg"
-               style={{ background: 'hsl(271 91% 65% / 0.15)', border: '1px solid hsl(271 91% 65% / 0.25)' }}>
-            <Sparkles className="h-4 w-4" style={{ color: 'hsl(271 91% 68%)' }} />
-          </div>
-          <span className="font-bold text-base gradient-text">OneLearn</span>
+      {/* Brand */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 22, marginBottom: 18, borderBottom: '1px solid var(--line)' }}>
+        {/* Brand mark */}
+        <div className="brand-mark">
+          <div className="brand-mark-diamond" />
+        </div>
+        {/* Brand name */}
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, letterSpacing: '-0.01em', lineHeight: 1 }}>
+          One<em style={{ fontStyle: 'italic', color: 'var(--purple-2)' }}>learn</em>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 py-4 space-y-0.5">
-        <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-widest"
-           style={{ color: 'hsl(270 8% 38%)' }}>
-          Menu
-        </p>
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + '/')
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
-                active
-                  ? 'text-white'
-                  : 'hover:bg-white/5'
-              )}
-              style={active ? {
-                background: 'hsl(271 91% 65% / 0.15)',
-                color: 'hsl(271 91% 78%)',
-                boxShadow: 'inset 0 0 0 1px hsl(271 91% 65% / 0.2)',
-              } : { color: 'hsl(270 8% 58%)' }}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {label}
-              {active && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full"
-                      style={{ background: 'hsl(271 91% 65%)', boxShadow: '0 0 6px hsl(271 91% 65%)' }} />
-              )}
-            </Link>
-          )
-        })}
+      <nav style={{ flex: 1 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--mute)', textTransform: 'uppercase', letterSpacing: '0.14em', margin: '0 8px 10px' }}>
+          Workspace
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {navItems.map(({ href, label, icon: Icon, meta }) => {
+            const active = pathname === href || pathname.startsWith(href + '/')
+            return (
+              <Link key={href} href={href} style={{ textDecoration: 'none' }}>
+                <div
+                  className={`sidebar-link${active ? ' active' : ''}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 11,
+                    padding: '9px 10px', borderRadius: 8,
+                    color: active ? '#fff' : 'var(--ink-2)',
+                    fontSize: 13, fontWeight: 400,
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'background 0.18s, color 0.18s',
+                    ...(active ? {
+                      background: 'linear-gradient(90deg, var(--purple-glow), transparent 80%)',
+                    } : {}),
+                  }}
+                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.04)' }}
+                  onMouseLeave={e => { if (!active) (e.currentTarget as HTMLDivElement).style.background = '' }}
+                >
+                  {/* Left active indicator */}
+                  {active && (
+                    <span style={{
+                      position: 'absolute', left: -18, top: 8, bottom: 8,
+                      width: 2, background: 'var(--purple)', borderRadius: 2,
+                      boxShadow: '0 0 12px var(--purple)',
+                    }} />
+                  )}
+                  <span style={{ width: 16, height: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', opacity: 0.85 }}>
+                    <Icon size={15} />
+                  </span>
+                  <span style={{ flex: 1 }}>{label}</span>
+                  {meta != null && (
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--mute)', marginLeft: 'auto' }}>
+                      {meta}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            )
+          })}
+        </div>
       </nav>
 
-      {/* User & Sign out */}
-      <div className="px-2 py-4" style={{ borderTop: '1px solid hsl(270 15% 11%)' }}>
+      {/* User widget */}
+      <div style={{
+        marginTop: 'auto',
+        border: '1px solid var(--line)',
+        borderRadius: 12,
+        padding: 14,
+        background: 'linear-gradient(180deg, oklch(0.42 0.18 295 / 0.06), transparent)',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        {/* Glow orb */}
+        <div style={{
+          position: 'absolute', right: '-30%', bottom: '-50%',
+          width: 140, height: 140, borderRadius: '50%',
+          background: 'radial-gradient(circle, var(--purple-glow), transparent 60%)',
+          filter: 'blur(10px)',
+          pointerEvents: 'none',
+        }} />
+
         {userEmail && (
-          <div className="px-3 py-2 mb-2 rounded-lg" style={{ background: 'hsl(240 12% 10%)' }}>
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold"
-                   style={{ background: 'hsl(271 91% 65% / 0.2)', color: 'hsl(271 91% 72%)' }}>
-                {userEmail[0].toUpperCase()}
-              </div>
-              <span className="text-xs truncate" style={{ color: 'hsl(270 8% 55%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, position: 'relative', marginBottom: 12 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'linear-gradient(135deg, var(--purple-2), var(--purple-3))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--font-serif)', fontSize: 14, color: '#fff',
+              flexShrink: 0, border: '1px solid var(--line)',
+            }}>
+              {userEmail[0].toUpperCase()}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: 'var(--ink-2)', fontFamily: 'var(--font-sans)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {userEmail}
-              </span>
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--purple-2)', fontFamily: 'var(--font-mono)', marginTop: 1, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                active
+              </div>
             </div>
           </div>
         )}
+
         <button
           onClick={signOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-white/5"
-          style={{ color: 'hsl(270 8% 50%)' }}
+          style={{
+            position: 'relative',
+            display: 'flex', alignItems: 'center', gap: 9,
+            padding: '7px 10px', borderRadius: 8,
+            color: 'var(--mute)', fontSize: 12,
+            fontFamily: 'var(--font-sans)',
+            background: 'none', border: 'none', cursor: 'pointer',
+            width: '100%',
+            transition: 'color 0.18s, background 0.18s',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'hsl(0 85% 70%)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(239,68,68,0.05)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--mute)'; (e.currentTarget as HTMLButtonElement).style.background = ''; }}
         >
-          <LogOut className="h-4 w-4 shrink-0" />
+          <LogOut size={13} />
           Sign out
         </button>
       </div>

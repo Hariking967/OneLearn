@@ -32,20 +32,39 @@ export async function extractTextFromImage(
     }
   }
 
+  // Normalise MIME type — phone cameras often produce image/heic which Claude doesn't accept
+  const safeMime = (mimeType.startsWith("image/jpeg") || mimeType.startsWith("image/png") || mimeType.startsWith("image/webp") || mimeType.startsWith("image/gif"))
+    ? mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif"
+    : "image/jpeg";
+
   const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 1500,
+    model: "claude-opus-4-7",
+    max_tokens: 2000,
     messages: [
       {
         role: "user",
         content: [
           {
             type: "image",
-            source: { type: "base64", media_type: mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp", data: imageBase64 },
+            source: { type: "base64", media_type: safeMime, data: imageBase64 },
           },
           {
             type: "text",
-            text: "Extract ALL text and mathematical notation from this handwritten answer image. Preserve the structure. Use LaTeX notation for any formulas (wrap in $ or $$). Return ONLY the extracted content, nothing else.",
+            text: `You are an expert handwriting transcription system for student exam answers.
+
+Your task: Transcribe EXACTLY what is written in this handwritten answer image.
+
+Instructions:
+1. Read every word carefully — do not skip any content
+2. Preserve the student's exact words (do NOT correct spelling, grammar, or content)
+3. Preserve paragraph structure and line breaks
+4. For numbered/bulleted lists, preserve numbering and indentation
+5. For mathematical expressions, convert to LaTeX: inline math → $expression$, display equations → $$expression$$
+6. For diagrams or drawings, write [Diagram: brief description]
+7. For illegible/unclear parts, write [illegible]
+8. Return ONLY the transcribed text — no preamble, no commentary, no "Here is the transcription:"
+
+Transcription:`,
           },
         ],
       },

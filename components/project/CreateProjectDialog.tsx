@@ -2,16 +2,17 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Loader2, Sparkles, Search, AlertCircle } from 'lucide-react'
+import { Plus, Sparkles, Search, AlertCircle, GitBranch, Bot } from 'lucide-react'
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
-type Step = 'form' | 'searching' | 'building'
+type Step = 'form' | 'choice' | 'searching' | 'building'
 
 interface Props {
   children?: React.ReactNode
+  classroomId?: string
 }
 
-export function CreateProjectDialog({ children }: Props) {
+export function CreateProjectDialog({ children, classroomId }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [projectName, setProjectName] = useState('')
@@ -22,6 +23,10 @@ export function CreateProjectDialog({ children }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    setStep('choice')
+  }
+
+  async function handleChooseAI() {
     setStep('searching')
     await new Promise(r => setTimeout(r, 800))
     setStep('building')
@@ -29,7 +34,7 @@ export function CreateProjectDialog({ children }: Props) {
     const res = await fetch('/api/generate-graph', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectName, mainTopic }),
+      body: JSON.stringify({ projectName, mainTopic, classroomId }),
     })
 
     if (!res.ok) {
@@ -40,18 +45,44 @@ export function CreateProjectDialog({ children }: Props) {
     }
 
     const { projectId } = await res.json()
-    setOpen(false)
-    setProjectName('')
-    setMainTopic('')
-    setStep('form')
+    closeAndReset()
     router.push(`/project/${projectId}`)
     router.refresh()
   }
 
+  async function handleChooseCustom() {
+    setStep('building')
+    const res = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectName, mainTopic, pathMode: 'custom', classroomId }),
+    })
+
+    if (!res.ok) {
+      const body = await res.json()
+      setError(body.error ?? 'Something went wrong')
+      setStep('form')
+      return
+    }
+
+    const { projectId } = await res.json()
+    closeAndReset()
+    router.push(`/project/${projectId}`)
+    router.refresh()
+  }
+
+  function closeAndReset() {
+    setOpen(false)
+    setProjectName('')
+    setMainTopic('')
+    setStep('form')
+    setError(null)
+  }
+
   function handleOpenChange(val: boolean) {
-    if (step !== 'form') return
+    if (step === 'searching' || step === 'building') return
     setOpen(val)
-    if (!val) { setError(null); setStep('form') }
+    if (!val) closeAndReset()
   }
 
   const trigger = children ?? (
@@ -135,6 +166,54 @@ export function CreateProjectDialog({ children }: Props) {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {step === 'choice' && (
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-1">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg"
+                   style={{ background: 'hsl(271 91% 65% / 0.15)', border: '1px solid hsl(271 91% 65% / 0.25)' }}>
+                <GitBranch className="h-4 w-4" style={{ color: 'hsl(271 91% 68%)' }} />
+              </div>
+              <h2 className="font-semibold text-base">Choose your learning path</h2>
+            </div>
+            <p className="text-sm mb-6 ml-11" style={{ color: 'hsl(270 8% 50%)' }}>
+              How do you want to structure your learning for <span style={{ color: 'hsl(270 15% 85%)' }}>"{mainTopic}"</span>?
+            </p>
+            {error && (
+              <div className="flex items-start gap-3 p-3.5 rounded-xl text-sm mb-4"
+                   style={{ background: 'hsl(0 72% 51% / 0.1)', border: '1px solid hsl(0 72% 51% / 0.25)', color: 'hsl(0 85% 72%)' }}>
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+            <div className="space-y-3">
+              <button onClick={handleChooseAI}
+                className="w-full text-left p-4 rounded-xl transition-all"
+                style={{ background: 'hsl(271 91% 65% / 0.08)', border: '1px solid hsl(271 91% 65% / 0.25)' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'hsl(271 91% 65% / 0.15)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'hsl(271 91% 65% / 0.08)')}>
+                <div className="flex items-center gap-3 mb-1">
+                  <Bot className="h-4 w-4 shrink-0" style={{ color: 'hsl(271 91% 68%)' }} />
+                  <span className="font-medium text-sm">Let AI build my learning path</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full ml-auto" style={{ background: 'hsl(271 91% 65% / 0.2)', color: 'hsl(271 91% 75%)' }}>Recommended</span>
+                </div>
+                <p className="text-xs ml-7" style={{ color: 'hsl(270 8% 50%)' }}>AI generates a prerequisite knowledge graph with the best learning order.</p>
+              </button>
+              <button onClick={handleChooseCustom}
+                className="w-full text-left p-4 rounded-xl transition-all"
+                style={{ background: 'hsl(240 12% 10%)', border: '1px solid hsl(270 25% 18%)' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'hsl(271 91% 65% / 0.4)')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'hsl(270 25% 18%)')}>
+                <div className="flex items-center gap-3 mb-1">
+                  <GitBranch className="h-4 w-4 shrink-0" style={{ color: 'hsl(270 15% 70%)' }} />
+                  <span className="font-medium text-sm">I'll define my own path</span>
+                </div>
+                <p className="text-xs ml-7" style={{ color: 'hsl(270 8% 50%)' }}>Add topics yourself and build your own learning structure.</p>
+              </button>
+            </div>
+            <button onClick={() => setStep('form')} className="mt-4 text-xs w-full text-center" style={{ color: 'hsl(270 8% 45%)' }}>← Back</button>
           </div>
         )}
 
