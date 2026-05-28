@@ -49,7 +49,7 @@ export function AssignmentsTab({ classroomId, isTeacher, initialAssignments, myS
     setSubmissionsLoading(assignmentId)
     try {
       const res = await fetch(`/api/classrooms/${classroomId}/assignments/${assignmentId}/submissions`)
-      if (res.ok) setSubmissionsData(d => ({ ...d, [assignmentId]: await res.json() }))
+      if (res.ok) { const data = await res.json(); setSubmissionsData(d => ({ ...d, [assignmentId]: data })) }
     } finally { setSubmissionsLoading(null) }
   }
 

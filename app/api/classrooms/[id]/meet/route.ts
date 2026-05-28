@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     type: 'announcement' as const,
     title: `Meeting started: ${title || 'Class Meeting'}`,
     body: `A live class meeting "${title || 'Class Meeting'}" has started. Join from the Video Meet tab.`,
-  }).then(() => {}).catch(() => {})
+  }).then(null, () => {})
 
   return NextResponse.json(data)
 }

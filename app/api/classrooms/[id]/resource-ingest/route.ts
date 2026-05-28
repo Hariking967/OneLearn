@@ -81,7 +81,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     type: 'announcement' as const,
     title: `Resource added: ${file.name}`,
     body: `A new resource "${file.name}" has been added and is now available in the Resources tab.`,
-  }).then(() => {}).catch(() => {})
+  }).then(null, () => {})
 
   return NextResponse.json({ chunks: chunks.length })
 }
